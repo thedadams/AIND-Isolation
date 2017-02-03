@@ -1,0 +1,9 @@
+__pycache__/
+*.tex
+*.aux
+*.log
+*.bbl
+*.bib
+*.png
+*.sublime-project
+*.sublime-workspace
