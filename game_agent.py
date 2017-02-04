@@ -136,7 +136,7 @@ class CustomPlayer:
         this_score = 0.0
         this_move = (-1, -1)
         if self.iterative:
-            self.search_depth = 1
+            self.search_depth = 3
         try:
             # The search method call (alpha beta or minimax) should happen in
             # here in order to avoid timeout. The try/except block will
