@@ -6,7 +6,7 @@ augment the test suite with your own test cases to further test your code.
 You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
-import random
+from random import randint
 
 
 class Timeout(Exception):
@@ -37,7 +37,8 @@ def custom_score(game, player):
         return float("-inf")
     if game.is_winner(player):
         return float("inf")
-    return float(len(game.get_legal_moves(player)) - len(game.get_legal_moves(game.get_opponent(player))))
+    move_diff = float(2 * len(game.get_legal_moves(player)) - len(game.get_legal_moves(game.get_opponent(player))))
+    return move_diff
 
 
 class CustomPlayer:
@@ -51,7 +52,7 @@ class CustomPlayer:
     search_depth : int (optional)
         A strictly positive integer (i.e., 1, 2, 3,...) for the number of
         layers in the game tree to explore for fixed-depth search. (i.e., a
-        depth of one (1) would only explore the immediate sucessors of the
+        depth of one (1) would only explore the immediate successors of the
         current state.)
 
     score_fn : callable (optional)
@@ -79,7 +80,7 @@ class CustomPlayer:
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
         if self.iterative:
-            self.search_depth = 1
+            self.search_depth = 3
 
     def get_move(self, game, legal_moves, time_left):
         """Search for the best move from the available legal moves and return a
@@ -119,18 +120,16 @@ class CustomPlayer:
 
         self.time_left = time_left
 
-        # TODO: finish this function!
-
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
         if len(legal_moves) > 8:
-            opening_move = (game.width // 2, game.height // 2)
-            if game.move_is_legal(opening_move):
-                return opening_move
+            if game.width * game.height == len(legal_moves):
+                return (randint(0, game.height - 1), randint(0, game.width - 1))
             else:
-                opening_move = (game.width // 2, game.height // 2 - 1)
-                return opening_move
+                return self.second_move(game)
+        if len(legal_moves) == 0:
+            return (-1, -1)
         move_score = float("-inf")
         next_move = (-1, -1)
         this_score = 0.0
@@ -147,7 +146,9 @@ class CustomPlayer:
                     this_score, this_move = self.alphabeta(game, self.search_depth)
                 else:
                     this_score, this_move = self.minimax(game, self.search_depth)
-                move_score, next_move = max((move_score, next_move), (this_score, this_move))
+                if move_score < this_score:
+                    move_score = this_score
+                    next_move = this_move
                 if not self.iterative:
                     break
                 self.search_depth += 1
@@ -156,6 +157,14 @@ class CustomPlayer:
             return next_move
         # Return the best move from the last completed search iteration
         return next_move
+
+    def second_move(self, game):
+        row, col = game.get_player_location(game.get_opponent(self))
+        if row < game.width // 2:
+            row += 1
+        else:
+            row -= 1
+        return (row, col)
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -241,7 +250,9 @@ class CustomPlayer:
         for move in game.get_legal_moves(self):
             this_score, _ = self.min_value(game.forecast_move(
                 move), depth - 1, alphabeta, alpha, beta)
-            utility, next_move = max((utility, next_move), (this_score, move))
+            if utility < this_score:
+                utility = this_score
+                next_move = move
             if alphabeta:
                 if utility >= beta:
                     break
@@ -259,9 +270,28 @@ class CustomPlayer:
         for move in game.get_legal_moves(game.get_opponent(self)):
             this_score, _ = self.max_value(game.forecast_move(
                 move), depth - 1, alphabeta, alpha, beta)
-            utility, next_move = min((utility, next_move), (this_score, move))
+            if utility > this_score:
+                utility = this_score
+                next_move = move
             if alphabeta:
                 if utility <= alpha:
                     break
                 beta = min(beta, utility)
         return utility, next_move
+
+if __name__ == "__main__":
+    from isolation import Board
+    from sample_players import improved_score
+
+    player_1 = CustomPlayer(score_fn=improved_score)
+    player_2 = CustomPlayer(method="alphabeta")
+    player_2_wins = 0
+    for i in range(10):
+        board = Board(player_1, player_2)
+        winner, _, _ = board.play()
+        if winner == player_1:
+            print("Player 1")
+        else:
+            player_2_wins += 1
+            print("Player 2")
+    print("Player 2 won {} times".format(player_2_wins))
