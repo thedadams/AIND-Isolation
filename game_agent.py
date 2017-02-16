@@ -7,11 +7,61 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 from random import randint
+from collections import deque
 
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
+
+
+def close_to_center_score(game, player):
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
+        return float("inf")
+    if len(my_moves) == 0:
+        return float("-inf")
+    my_row, my_col = game.get_player_location(player)
+    move_score = abs(game.height / 2 - my_row) + abs(game.width / 2 - my_col)
+    return move_score
+
+
+def far_from_center_score(game, player):
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
+        return float("inf")
+    if len(my_moves) == 0:
+        return float("-inf")
+    my_row, my_col = game.get_player_location(player)
+    move_score = abs(game.height / 2 - my_row) + abs(game.width / 2 - my_col)
+    return 1 / (move_score + 1)
+
+
+def move_in_bounds(row, col, height, width):
+    return row >= 0 and row < height and col >= 0 and col < width
+
+
+def bfs_moves_scores(row, col, height, width, ratio):
+    queue = deque()
+    scores = [[0. for i in range(height)] for j in range(width)]
+    queue.append((row, col, -1))
+    while len(queue) != 0:
+        r, c, s = queue.popleft()
+        if not move_in_bounds(r, c, height, width) or scores[r][c] > 0.:
+            continue
+        s += 1
+        scores[r][c] = ratio**(s)
+        queue.append((r - 1, c + 2, s))
+        queue.append((r - 1, c - 2, s))
+        queue.append((r + 1, c - 2, s))
+        queue.append((r + 1, c + 2, s))
+        queue.append((r - 2, c - 1, s))
+        queue.append((r - 2, c + 1, s))
+        queue.append((r + 2, c - 1, s))
+        queue.append((r + 2, c + 1, s))
+    return scores
 
 
 def custom_score(game, player):
@@ -42,9 +92,21 @@ def custom_score(game, player):
         return float("inf")
     if len(my_moves) == 0:
         return float("-inf")
+    move_score = 0.
     my_row, my_col = game.get_player_location(player)
-    move_score = abs(game.height / 2 - my_row) + abs(game.width / 2 - my_col)
-    return (len(my_moves) - len(opponent_moves)) / move_score
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+    blank_spaces = set(game.get_blank_spaces())
+    if (my_row, my_col) not in player.bfs_moves:
+        player.bfs_moves[(my_row, my_col)] = bfs_moves_scores(my_row, my_col, game.height, game.width, 1. / 6.)
+    if (opp_row, opp_col) not in player.bfs_moves:
+        player.bfs_moves[(opp_row, opp_col)] = bfs_moves_scores(opp_row, opp_col, game.height, game.width, 1. / 6.)
+    my_scores = player.bfs_moves[(my_row, my_col)]
+    opp_scores = player.bfs_moves[(opp_row, opp_col)]
+    for i in range(game.height):
+        for j in range(game.width):
+            if (i, j) in blank_spaces:
+                move_score += my_scores[i][j] - opp_scores[i][j]
+    return move_score
 
 
 class CustomPlayer:
@@ -85,6 +147,7 @@ class CustomPlayer:
         self.method = method
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
+        self.bfs_moves = dict()
 
     def get_move(self, game, legal_moves, time_left):
         """Search for the best move from the available legal moves and return a
@@ -288,20 +351,3 @@ class CustomPlayer:
                     break
                 beta = min(beta, utility)
         return utility, next_move
-
-if __name__ == "__main__":
-    from isolation import Board
-    from sample_players import improved_score
-
-    player_1 = CustomPlayer(score_fn=improved_score)
-    player_2 = CustomPlayer(method="alphabeta")
-    player_2_wins = 0
-    for i in range(10):
-        board = Board(player_1, player_2)
-        winner, _, _ = board.play()
-        if winner == player_1:
-            print("Player 1")
-        else:
-            player_2_wins += 1
-            print("Player 2")
-    print("Player 2 won {} times".format(player_2_wins))
