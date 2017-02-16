@@ -36,12 +36,15 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    if game.is_loser(player):
-        return float("-inf")
-    if game.is_winner(player):
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
         return float("inf")
-    move_diff = float(2 * len(game.get_legal_moves(player)) - len(game.get_legal_moves(game.get_opponent(player))))
-    return move_diff
+    if len(my_moves) == 0:
+        return float("-inf")
+    my_row, my_col = game.get_player_location(player)
+    move_score = abs(game.height / 2 - my_row) + abs(game.width / 2 - my_col)
+    return (len(my_moves) - len(opponent_moves)) / move_score
 
 
 class CustomPlayer:
@@ -82,8 +85,6 @@ class CustomPlayer:
         self.method = method
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
-        if self.iterative:
-            self.search_depth = 3
 
     def get_move(self, game, legal_moves, time_left):
         """Search for the best move from the available legal moves and return a
@@ -133,12 +134,9 @@ class CustomPlayer:
                 return self.second_move(game)
         if len(legal_moves) == 0:
             return (-1, -1)
-        move_score = float("-inf")
         next_move = (-1, -1)
-        this_score = 0.0
-        this_move = (-1, -1)
         if self.iterative:
-            self.search_depth = 3
+            self.search_depth = 1
         try:
             # The search method call (alpha beta or minimax) should happen in
             # here in order to avoid timeout. The try/except block will
@@ -146,18 +144,15 @@ class CustomPlayer:
             # when the timer gets close to expiring
             while True:
                 if self.method == "alphabeta":
-                    this_score, this_move = self.alphabeta(game, self.search_depth)
+                    _, next_move = self.alphabeta(game, self.search_depth)
                 else:
-                    this_score, this_move = self.minimax(game, self.search_depth)
-                if move_score < this_score:
-                    move_score = this_score
-                    next_move = this_move
+                    _, next_move = self.minimax(game, self.search_depth)
                 if not self.iterative:
                     break
                 self.search_depth += 1
         except Timeout:
             # Handle any actions required at timeout, if necessary
-            return next_move
+            pass
         # Return the best move from the last completed search iteration
         return next_move
 
