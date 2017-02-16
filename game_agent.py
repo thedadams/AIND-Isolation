@@ -95,17 +95,32 @@ def custom_score(game, player):
     move_score = 0.
     my_row, my_col = game.get_player_location(player)
     opp_row, opp_col = game.get_player_location(game.get_opponent(player))
-    blank_spaces = set(game.get_blank_spaces())
+    my_row_reflect = my_col_reflect = opp_col_reflect = opp_row_reflect = False
+    if my_row >= (game.height + 1) // 2:
+        my_row = game.height - 1 - my_row
+        my_row_reflect = True
+    if my_col >= (game.width + 1) // 2:
+        my_col = game.width - 1 - my_col
+        my_col_reflect = True
+    if opp_row >= (game.height + 1) // 2:
+        opp_row = game.height - 1 - opp_row
+        opp_row_reflect = True
+    if opp_col >= (game.width + 1) // 2:
+        opp_col = game.width - 1 - opp_col
+        opp_col_reflect = True
     if (my_row, my_col) not in player.bfs_moves:
         player.bfs_moves[(my_row, my_col)] = bfs_moves_scores(my_row, my_col, game.height, game.width, 1. / 6.)
     if (opp_row, opp_col) not in player.bfs_moves:
         player.bfs_moves[(opp_row, opp_col)] = bfs_moves_scores(opp_row, opp_col, game.height, game.width, 1. / 6.)
     my_scores = player.bfs_moves[(my_row, my_col)]
     opp_scores = player.bfs_moves[(opp_row, opp_col)]
-    for i in range(game.height):
-        for j in range(game.width):
-            if (i, j) in blank_spaces:
-                move_score += my_scores[i][j] - opp_scores[i][j]
+    for i, j in game.get_blank_spaces():
+        r = game.height - 1 - i if my_row_reflect else i
+        c = game.width - 1 - j if my_col_reflect else j
+        move_score += my_scores[r][c]
+        r = game.height - 1 - i if opp_row_reflect else i
+        c = game.width - 1 - j if opp_col_reflect else j
+        move_score -= opp_scores[r][c]
     return move_score
 
 
