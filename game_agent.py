@@ -52,7 +52,7 @@ def bfs_moves_scores(row, col, height, width, ratio):
         if not move_in_bounds(r, c, height, width) or scores[r][c] > 0.:
             continue
         s += 1
-        scores[r][c] = ratio**(s)
+        scores[r][c] = ratio**(s) if ratio < 1 else s
         queue.append((r - 1, c + 2, s))
         queue.append((r - 1, c - 2, s))
         queue.append((r + 1, c - 2, s))
@@ -62,6 +62,45 @@ def bfs_moves_scores(row, col, height, width, ratio):
         queue.append((r + 2, c - 1, s))
         queue.append((r + 2, c + 1, s))
     return scores
+
+
+def bfs_heuristic(game, player):
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
+        return float("inf")
+    if len(my_moves) == 0:
+        return float("-inf")
+    move_score = 0.
+    my_row, my_col = game.get_player_location(player)
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+    my_row_reflect = my_col_reflect = opp_col_reflect = opp_row_reflect = False
+    if my_row >= (game.height + 1) // 2:
+        my_row = game.height - 1 - my_row
+        my_row_reflect = True
+    if my_col >= (game.width + 1) // 2:
+        my_col = game.width - 1 - my_col
+        my_col_reflect = True
+    if opp_row >= (game.height + 1) // 2:
+        opp_row = game.height - 1 - opp_row
+        opp_row_reflect = True
+    if opp_col >= (game.width + 1) // 2:
+        opp_col = game.width - 1 - opp_col
+        opp_col_reflect = True
+    if (my_row, my_col) not in player.bfs_moves:
+        player.bfs_moves[(my_row, my_col)] = bfs_moves_scores(my_row, my_col, game.height, game.width, player.ratio)
+    if (opp_row, opp_col) not in player.bfs_moves:
+        player.bfs_moves[(opp_row, opp_col)] = bfs_moves_scores(opp_row, opp_col, game.height, game.width, player.ratio)
+    my_scores = player.bfs_moves[(my_row, my_col)]
+    opp_scores = player.bfs_moves[(opp_row, opp_col)]
+    for i, j in game.get_blank_spaces():
+        r = game.height - 1 - i if my_row_reflect else i
+        c = game.width - 1 - j if my_col_reflect else j
+        move_score += my_scores[r][c]
+        r = game.height - 1 - i if opp_row_reflect else i
+        c = game.width - 1 - j if opp_col_reflect else j
+        move_score -= opp_scores[r][c]
+    return move_score
 
 
 def custom_score(game, player):
@@ -86,42 +125,7 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    opponent_moves = game.get_legal_moves(game.get_opponent(player))
-    my_moves = game.get_legal_moves(player)
-    if len(opponent_moves) == 0:
-        return float("inf")
-    if len(my_moves) == 0:
-        return float("-inf")
-    move_score = 0.
-    my_row, my_col = game.get_player_location(player)
-    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
-    my_row_reflect = my_col_reflect = opp_col_reflect = opp_row_reflect = False
-    if my_row >= (game.height + 1) // 2:
-        my_row = game.height - 1 - my_row
-        my_row_reflect = True
-    if my_col >= (game.width + 1) // 2:
-        my_col = game.width - 1 - my_col
-        my_col_reflect = True
-    if opp_row >= (game.height + 1) // 2:
-        opp_row = game.height - 1 - opp_row
-        opp_row_reflect = True
-    if opp_col >= (game.width + 1) // 2:
-        opp_col = game.width - 1 - opp_col
-        opp_col_reflect = True
-    if (my_row, my_col) not in player.bfs_moves:
-        player.bfs_moves[(my_row, my_col)] = bfs_moves_scores(my_row, my_col, game.height, game.width, 1. / 6.)
-    if (opp_row, opp_col) not in player.bfs_moves:
-        player.bfs_moves[(opp_row, opp_col)] = bfs_moves_scores(opp_row, opp_col, game.height, game.width, 1. / 6.)
-    my_scores = player.bfs_moves[(my_row, my_col)]
-    opp_scores = player.bfs_moves[(opp_row, opp_col)]
-    for i, j in game.get_blank_spaces():
-        r = game.height - 1 - i if my_row_reflect else i
-        c = game.width - 1 - j if my_col_reflect else j
-        move_score += my_scores[r][c]
-        r = game.height - 1 - i if opp_row_reflect else i
-        c = game.width - 1 - j if opp_col_reflect else j
-        move_score -= opp_scores[r][c]
-    return move_score
+    return 0.
 
 
 class CustomPlayer:
@@ -155,7 +159,7 @@ class CustomPlayer:
     """
 
     def __init__(self, search_depth=3, score_fn=custom_score,
-                 iterative=True, method='minimax', timeout=15.):
+                 iterative=True, method='minimax', timeout=15., ratio=1.):
         self.search_depth = search_depth
         self.iterative = iterative
         self.score = score_fn
@@ -163,6 +167,7 @@ class CustomPlayer:
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
         self.bfs_moves = dict()
+        self.ratio = ratio
 
     def get_move(self, game, legal_moves, time_left):
         """Search for the best move from the available legal moves and return a
