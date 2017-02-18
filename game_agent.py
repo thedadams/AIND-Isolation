@@ -214,7 +214,7 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    return close_to_center_score(game, player) + bfs_heuristic(game, player)
+    return bfs_heuristic(game, player)
 
 
 class CustomPlayer:
@@ -249,7 +249,7 @@ class CustomPlayer:
         The ratio used to calculate the BFS heuristic for the player.
     """
 
-    def __init__(self, search_depth=3, score_fn=custom_score, iterative=True, method='minimax', timeout=15., ratio=0.1):
+    def __init__(self, search_depth=3, score_fn=custom_score, iterative=True, method='minimax', timeout=10., ratio=0.1):
         self.search_depth = search_depth
         self.iterative = iterative
         self.score = score_fn
