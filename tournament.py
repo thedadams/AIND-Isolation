@@ -31,9 +31,9 @@ from sample_players import null_score
 from sample_players import open_move_score
 from sample_players import improved_score
 from game_agent import CustomPlayer
-from game_agent import custom_score, bfs_heuristic, far_from_center_score, close_to_center_score
+from game_agent import custom_score
 
-NUM_MATCHES = 25  # number of matches against each opponent
+NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
 
 TIMEOUT_WARNING = "One or more agents lost a match this round due to " + \
@@ -162,18 +162,7 @@ def main():
     # faster or slower computers.
     test_agents = [
         Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS), "BFS, r = 1"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=0.5), "BFS, r = 1/2"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=1. / 3.), "BFS, r = 1/3"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=0.25), "BFS, r = 1/4"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=0.2), "BFS, r = 1/5"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=1. / 6.), "BFS, r = 1/6"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=1. / 7.), "BFS, r = 1/7"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=0.125), "BFS, r = 1/8"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=1. / 9.), "BFS, r = 1/9"),
-        Agent(CustomPlayer(score_fn=bfs_heuristic, **CUSTOM_ARGS, ratio=0.1), "BFS, r = 1/10"),
-        Agent(CustomPlayer(score_fn=close_to_center_score, **CUSTOM_ARGS), "Close to center"),
-        Agent(CustomPlayer(score_fn=far_from_center_score, **CUSTOM_ARGS), "Far from center")
+        Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Student")
     ]
 
     print(DESCRIPTION)
