@@ -1,5 +1,4 @@
 __pycache__/
-*.tex
 *.aux
 *.log
 *.bbl
