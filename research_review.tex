@@ -1,0 +1,26 @@
+\documentclass[12pt]{article}
+
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+\linespread{1.5}
+\setlength{\parskip}{1em}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\headheight}{.5in}
+\setlength{\topmargin}{0in} \addtolength{\topmargin}{-\headheight}
+\addtolength{\topmargin}{-\headsep}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\parindent}{0em}
+
+\pagestyle{fancy}\lhead{\textit{Game Tree Searching by Min/Max Approximation} by Ronald L. Rivest} \rhead{}
+\chead{} \lfoot{} \rfoot{} \cfoot{}
+
+\begin{document}
+In this paper, Dr. Rivest outlines an algorithm for the selection of the next node to expand in a game tree. Typically, when searching a game tree, it is infeasable to expand every node in the tree to find the optimal next move. Therefore, we define a heuristic which attempts to find the best available move on the board without searching to end-game. The difficulty that remains is deciding how far into the tree we should search.
+
+Searching to a fixed depth on every turn has a big disadvantage known as the ``horizon affect.'' A move can look like the optimal move for four or five turns, but then something can happen that drastically changes the outcome of the game. For example, using your queen to capture an opponents piece could look like a good strategy for a few moves in the future, but it could expose your queen to potential capture, which could mean the difference between winning and loosing. Even iterative deepening can suffer from the horizon affect if the algorithm is not given enough time.
+
+
+\end{document}
