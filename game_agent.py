@@ -15,19 +15,19 @@ class Timeout(Exception):
     pass
 
 
-def close_to_center_score(game, player):
-    opponent_moves = game.get_legal_moves(game.get_opponent(player))
-    my_moves = game.get_legal_moves(player)
-    if len(opponent_moves) == 0:
-        return float("inf")
-    if len(my_moves) == 0:
-        return float("-inf")
-    my_row, my_col = game.get_player_location(player)
-    move_score = abs(game.height / 2 - my_row) + abs(game.width / 2 - my_col)
-    return move_score
-
-
 def far_from_center_score(game, player):
+    """
+    This heuristic chooses the move that is furthest from the center of the board.
+
+    Parameters
+    ----------
+        game - a Board object representing the current state of the game.
+        player - a CustomPlayer object that represents the player using this heuristic
+
+    Returns
+    -------
+        float - heuristic value of the current move
+    """
     opponent_moves = game.get_legal_moves(game.get_opponent(player))
     my_moves = game.get_legal_moves(player)
     if len(opponent_moves) == 0:
@@ -35,38 +35,93 @@ def far_from_center_score(game, player):
     if len(my_moves) == 0:
         return float("-inf")
     my_row, my_col = game.get_player_location(player)
-    move_score = abs(game.height / 2 - my_row) + abs(game.width / 2 - my_col)
-    return 1 / (move_score + 1)
+    return float(abs(game.height // 2 - my_row) + abs(game.width // 2 - my_col))
+
+
+def close_to_center_score(game, player):
+    """
+    This heuristic chooses the moves that is closest to the center of the board.
+
+    Parameters
+    ----------
+        game - a Board object representing the current state of the game.
+        player - a CustomPlayer object that represents the player using this heuristic
+
+    Returns
+        float - heuristic value of the current move
+    """
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
+        return float("inf")
+    if len(my_moves) == 0:
+        return float("-inf")
+    my_row, my_col = game.get_player_location(player)
+    return 1. / (abs(game.height // 2 - my_row) + abs(game.width // 2 - my_col) + 1)
 
 
 def move_in_bounds(row, col, height, width):
+    """
+    This is a helper function to make sure we are in the board bounds.
+    """
     return row >= 0 and row < height and col >= 0 and col < width
 
 
 def bfs_moves_scores(row, col, height, width, ratio):
+    """
+    This helper function calculates the shortest path to each square on the board.
+    It then scores each square as ratio**s, where s is the number of steps of the shortest path
+    to that square from (row, col).
+
+    Parameters
+    ----------
+    (row, col) - the position to start from
+    height - number of rows in the board
+    width - number of columns in the board
+    ratio - the number used to score each square of the board (should be 0 < ratio < 1)
+                the default value is 0.1
+
+    Returns
+    -------
+        a 2D list of scores for the board
+    """
     queue = deque()
-    scores = [[0. for i in range(height)] for j in range(width)]
-    queue.append((row, col, -1))
+    scores = [[-1. for i in range(height)] for j in range(width)]
+    queue.append(((row, col), 0))
     while len(queue) != 0:
-        r, c, s = queue.popleft()
-        if not move_in_bounds(r, c, height, width) or scores[r][c] > 0.:
-            continue
-        s += 1
-        scores[r][c] = ratio**(s) if ratio < 1 else s
-        queue.append((r - 1, c + 2, s))
-        queue.append((r - 1, c - 2, s))
-        queue.append((r + 1, c - 2, s))
-        queue.append((r + 1, c + 2, s))
-        queue.append((r - 2, c - 1, s))
-        queue.append((r - 2, c + 1, s))
-        queue.append((r + 2, c - 1, s))
-        queue.append((r + 2, c + 1, s))
+        (r, c), s = queue.popleft()
+        next_moves = []
+        for i in [-1, 1]:
+            for j in [-2, 2]:
+                if move_in_bounds(r + i, c + j, height, width) and scores[r + i][c + j] < 0.:
+                    next_moves.append((r + i, c + j))
+                if move_in_bounds(r + j, c + i, height, width) and scores[r + j][c + i] < 0.:
+                    next_moves.append((r + j, c + i))
+        scores[r][c] = ratio**s
+        queue.extend(zip(next_moves, [s + 1 for i in range(len(next_moves))]))
     return scores
 
 
 def bfs_heuristic(game, player):
+    """
+    This heuristic user BFS to calculate a score for each square on the board for each player in the game.
+    Then it adds up all the scores of the blank squares for `player` and subtracts the score of each blank
+    square for `opponent`.
+    This idea is that it is a generalization of `improved_score`: `improved_score` does this for the next moves,
+    but here we use all possible remaining moves.
+
+    Parameters
+    ----------
+    game - a Board object representing the current state of the game.
+    player - a CustomPlayer object that represents the player using this heuristic
+
+    Returns
+    -------
+        float - the heuristic value of the current move
+    """
     opponent_moves = game.get_legal_moves(game.get_opponent(player))
     my_moves = game.get_legal_moves(player)
+    # If we know whether we have won or lost, determine that now.
     if len(opponent_moves) == 0:
         return float("inf")
     if len(my_moves) == 0:
@@ -74,33 +129,67 @@ def bfs_heuristic(game, player):
     move_score = 0.
     my_row, my_col = game.get_player_location(player)
     opp_row, opp_col = game.get_player_location(game.get_opponent(player))
-    my_row_reflect = my_col_reflect = opp_col_reflect = opp_row_reflect = False
-    if my_row >= (game.height + 1) // 2:
-        my_row = game.height - 1 - my_row
-        my_row_reflect = True
-    if my_col >= (game.width + 1) // 2:
-        my_col = game.width - 1 - my_col
-        my_col_reflect = True
-    if opp_row >= (game.height + 1) // 2:
-        opp_row = game.height - 1 - opp_row
-        opp_row_reflect = True
-    if opp_col >= (game.width + 1) // 2:
-        opp_col = game.width - 1 - opp_col
-        opp_col_reflect = True
+    # If we have calculated the scores for this starting position, then we do that and store them in a dict.
     if (my_row, my_col) not in player.bfs_moves:
         player.bfs_moves[(my_row, my_col)] = bfs_moves_scores(my_row, my_col, game.height, game.width, player.ratio)
     if (opp_row, opp_col) not in player.bfs_moves:
         player.bfs_moves[(opp_row, opp_col)] = bfs_moves_scores(opp_row, opp_col, game.height, game.width, player.ratio)
+    # Here we retrieve the already calculate board scores.
+    # The idea is that we only have to calculate the board scores once because they are based on an empty board.
     my_scores = player.bfs_moves[(my_row, my_col)]
     opp_scores = player.bfs_moves[(opp_row, opp_col)]
     for i, j in game.get_blank_spaces():
-        r = game.height - 1 - i if my_row_reflect else i
-        c = game.width - 1 - j if my_col_reflect else j
-        move_score += my_scores[r][c]
-        r = game.height - 1 - i if opp_row_reflect else i
-        c = game.width - 1 - j if opp_col_reflect else j
-        move_score -= opp_scores[r][c]
+        move_score += my_scores[i][j]
+        move_score -= opp_scores[i][j]
     return move_score
+
+
+def far_from_opponent_score(game, player):
+    """
+    This heuristic chooses the move that is furtherest from the opponent.
+
+    Parameters
+    ----------
+    game - a Board object representing the current state of the game.
+    player - a CustomPlayer object that represents the player using this heuristic
+
+    Returns
+    -------
+        float - the heuristic value of the current move
+    """
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
+        return float("inf")
+    if len(my_moves) == 0:
+        return float("-inf")
+    my_row, my_col = game.get_player_location(player)
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+    return float(abs(my_row - opp_row) + abs(my_col - opp_col))
+
+
+def close_to_opponent_score(game, player):
+    """
+    This heuristic chooses the move that is closest to the opponent.
+
+    Parameters
+    ----------
+    game - a Board object representing the current state of the game.
+    player - a CustomPlayer object that represents the player using this heuristic
+
+    Returns
+    -------
+        float - the heuristic value of the current move
+    """
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
+        return float("inf")
+    if len(my_moves) == 0:
+        return float("-inf")
+    my_row, my_col = game.get_player_location(player)
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+    return 1. / (abs(my_row - opp_row) + abs(my_col - opp_col))
 
 
 def custom_score(game, player):
@@ -125,7 +214,7 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    return 0.
+    return close_to_center_score(game, player) + bfs_heuristic(game, player)
 
 
 class CustomPlayer:
@@ -156,16 +245,18 @@ class CustomPlayer:
         Time remaining (in milliseconds) when search is aborted. Should be a
         positive value large enough to allow the function to return before the
         timer expires.
+    ratio : float (optional)
+        The ratio used to calculate the BFS heuristic for the player.
     """
 
-    def __init__(self, search_depth=3, score_fn=custom_score,
-                 iterative=True, method='minimax', timeout=15., ratio=1.):
+    def __init__(self, search_depth=3, score_fn=custom_score, iterative=True, method='minimax', timeout=15., ratio=0.1):
         self.search_depth = search_depth
         self.iterative = iterative
         self.score = score_fn
         self.method = method
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
+        # This is used to store the board move scores in the BFS heuristic.
         self.bfs_moves = dict()
         self.ratio = ratio
 
@@ -210,13 +301,25 @@ class CustomPlayer:
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
+
+        # If we are picking our position on the board.n
         if len(legal_moves) > 8:
+            # If we are the first to pick.
             if game.width * game.height == len(legal_moves):
+                # We pick a random spot.
                 return (randint(0, game.height - 1), randint(0, game.width - 1))
             else:
-                return self.second_move(game)
+                # If we are second to pick, then we pick one column inside the first player, if we can.
+                row, col = game.get_player_location(game.get_opponent(self))
+                if col < game.width // 2:
+                    col += 1
+                else:
+                    col -= 1
+                    return (row, col)
+
         if len(legal_moves) == 0:
             return (-1, -1)
+
         next_move = (-1, -1)
         if self.iterative:
             self.search_depth = 1
@@ -230,6 +333,7 @@ class CustomPlayer:
                     _, next_move = self.alphabeta(game, self.search_depth)
                 else:
                     _, next_move = self.minimax(game, self.search_depth)
+                # If we are not using iterative deepening, then we exit this loop after the first run.
                 if not self.iterative:
                     break
                 self.search_depth += 1
@@ -238,14 +342,6 @@ class CustomPlayer:
             pass
         # Return the best move from the last completed search iteration
         return next_move
-
-    def second_move(self, game):
-        row, col = game.get_player_location(game.get_opponent(self))
-        if row < game.width // 2:
-            row += 1
-        else:
-            row -= 1
-        return (row, col)
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -333,6 +429,22 @@ class CustomPlayer:
             return self.min_value(game, depth, True, alpha, beta)
 
     def max_value(self, game, depth, alphabeta=False, alpha=float("-inf"), beta=float("inf")):
+        """
+        This handles the max level of the game tree.
+
+        Parameters
+        ----------
+        game - a Board object representing the current game state
+        depth - the depth we have left to search
+        alphabeta - bool, True if we are using alphabeta pruning
+        alpha - the lower bound for alphabeta
+        beta - the upper bound for alphabeta
+
+        Returns
+        -------
+        float - the score for the current search branch
+        tuple(int, int) - the best move for the current branch; (-1, -1) for no legal moves
+        """
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
@@ -341,18 +453,35 @@ class CustomPlayer:
         utility = float("-inf")
         next_move = (-1, -1)
         for move in game.get_legal_moves(self):
-            this_score, _ = self.min_value(game.forecast_move(
-                move), depth - 1, alphabeta, alpha, beta)
+            this_score, _ = self.min_value(game.forecast_move(move), depth - 1, alphabeta, alpha, beta)
+            # If we found a better score, we update it.
             if utility < this_score:
                 utility = this_score
                 next_move = move
             if alphabeta:
+                # We prune, as in we do not need to calculate further.
                 if utility >= beta:
                     break
                 alpha = max(alpha, utility)
         return utility, next_move
 
     def min_value(self, game, depth, alphabeta=False, alpha=float("-inf"), beta=float("inf")):
+        """
+        This handles the min level of the game tree.
+
+        Parameters
+        ----------
+        game - a Board object representing the current game state
+        depth - the depth we have left to search
+        alphabeta - bool, True if we are using alphabeta pruning
+        alpha - the lower bound for alphabeta
+        beta - the upper bound for alphabeta
+
+        Returns
+        -------
+        float - the score for the current search branch
+        tuple(int, int) - the best move for the current branch; (-1, -1) for no legal moves
+        """
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
@@ -361,12 +490,13 @@ class CustomPlayer:
         utility = float("inf")
         next_move = (-1, -1)
         for move in game.get_legal_moves(game.get_opponent(self)):
-            this_score, _ = self.max_value(game.forecast_move(
-                move), depth - 1, alphabeta, alpha, beta)
+            this_score, _ = self.max_value(game.forecast_move(move), depth - 1, alphabeta, alpha, beta)
+            # If we have found a better score, we update it.
             if utility > this_score:
                 utility = this_score
                 next_move = move
             if alphabeta:
+                # We prune, as in we do not need to calculate further.
                 if utility <= alpha:
                     break
                 beta = min(beta, utility)
