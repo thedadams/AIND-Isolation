@@ -76,7 +76,7 @@ def move_in_bounds(row, col, height, width):
 def bfs_moves_scores(row, col, height, width, blank_spaces):
     """
     This helper function calculates the shortest path to each square on the board.
-    It then scores each square as 1/s, where s is the number of steps of the shortest path to that square from (row, col)
+    It then scores each square as 1/(s+1), where s is the number of steps of the shortest path to that square from (row, col)
     using only spaces that are blank.
 
     Parameters
