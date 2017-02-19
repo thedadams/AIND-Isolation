@@ -17,7 +17,7 @@ class Timeout(Exception):
 
 def far_from_center_score(game, player):
     """
-    This heuristic chooses the move that is furthest from the center of the board.
+    This heuristic values squares furthest from the center of the board.
 
     Parameters
     ----------
@@ -35,12 +35,15 @@ def far_from_center_score(game, player):
     if len(my_moves) == 0:
         return float("-inf")
     my_row, my_col = game.get_player_location(player)
-    return float(abs(game.height // 2 - my_row) + abs(game.width // 2 - my_col))
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+    score = abs(game.height / 2 - my_row) + abs(game.width / 2 - my_col)
+    score -= abs(game.height / 2 - opp_row) + abs(game.width / 2 - opp_col)
+    return score
 
 
 def close_to_center_score(game, player):
     """
-    This heuristic chooses the moves that is closest to the center of the board.
+    This heuristic values squares in the center of the board more than those at the edge of the board.
 
     Parameters
     ----------
@@ -57,7 +60,10 @@ def close_to_center_score(game, player):
     if len(my_moves) == 0:
         return float("-inf")
     my_row, my_col = game.get_player_location(player)
-    return 1. / (abs(game.height // 2 - my_row) + abs(game.width // 2 - my_col) + 1)
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+    score = -(abs(game.height / 2 - my_row) + abs(game.width / 2 - my_col))
+    score -= -(abs(game.height / 2 - opp_row) + abs(game.width / 2 - opp_col))
+    return score
 
 
 def move_in_bounds(row, col, height, width):
@@ -67,19 +73,18 @@ def move_in_bounds(row, col, height, width):
     return row >= 0 and row < height and col >= 0 and col < width
 
 
-def bfs_moves_scores(row, col, height, width, ratio):
+def bfs_moves_scores(row, col, height, width, blank_spaces):
     """
     This helper function calculates the shortest path to each square on the board.
-    It then scores each square as ratio**s, where s is the number of steps of the shortest path
-    to that square from (row, col).
+    It then scores each square as 1/s, where s is the number of steps of the shortest path to that square from (row, col)
+    using only spaces that are blank.
 
     Parameters
     ----------
     (row, col) - the position to start from
     height - number of rows in the board
     width - number of columns in the board
-    ratio - the number used to score each square of the board (should be 0 < ratio < 1)
-                the default value is 0.1
+    blank_spaces - a set of tuples containing all the blank spaces on the board
 
     Returns
     -------
@@ -87,17 +92,19 @@ def bfs_moves_scores(row, col, height, width, ratio):
     """
     queue = deque()
     scores = [[-1. for i in range(height)] for j in range(width)]
-    queue.append(((row, col), 0))
+    queue.append(((row, col), 1))
     while len(queue) != 0:
         (r, c), s = queue.popleft()
         next_moves = []
         for i in [-1, 1]:
             for j in [-2, 2]:
-                if move_in_bounds(r + i, c + j, height, width) and scores[r + i][c + j] < 0.:
+                # For each possible move, we check that we are in bounds,
+                # the space is blank, and we haven't already visited it.
+                if move_in_bounds(r + i, c + j, height, width) and (r + i, c + j) in blank_spaces and scores[r + i][c + j] < 0.:
                     next_moves.append((r + i, c + j))
-                if move_in_bounds(r + j, c + i, height, width) and scores[r + j][c + i] < 0.:
+                if move_in_bounds(r + j, c + i, height, width) and (r + j, c + i) in blank_spaces and scores[r + j][c + i] < 0.:
                     next_moves.append((r + j, c + i))
-        scores[r][c] = ratio**s
+        scores[r][c] = 1. / s
         queue.extend(zip(next_moves, [s + 1 for i in range(len(next_moves))]))
     return scores
 
@@ -117,7 +124,7 @@ def bfs_heuristic(game, player):
 
     Returns
     -------
-        float - the heuristic value of the current move
+    float - the heuristic value of the current move
     """
     opponent_moves = game.get_legal_moves(game.get_opponent(player))
     my_moves = game.get_legal_moves(player)
@@ -129,16 +136,10 @@ def bfs_heuristic(game, player):
     move_score = 0.
     my_row, my_col = game.get_player_location(player)
     opp_row, opp_col = game.get_player_location(game.get_opponent(player))
-    # If we have calculated the scores for this starting position, then we do that and store them in a dict.
-    if (my_row, my_col) not in player.bfs_moves:
-        player.bfs_moves[(my_row, my_col)] = bfs_moves_scores(my_row, my_col, game.height, game.width, player.ratio)
-    if (opp_row, opp_col) not in player.bfs_moves:
-        player.bfs_moves[(opp_row, opp_col)] = bfs_moves_scores(opp_row, opp_col, game.height, game.width, player.ratio)
-    # Here we retrieve the already calculate board scores.
-    # The idea is that we only have to calculate the board scores once because they are based on an empty board.
-    my_scores = player.bfs_moves[(my_row, my_col)]
-    opp_scores = player.bfs_moves[(opp_row, opp_col)]
-    for i, j in game.get_blank_spaces():
+    blank_spaces = set(game.get_blank_spaces())
+    my_scores = bfs_moves_scores(my_row, my_col, game.height, game.width, blank_spaces)
+    opp_scores = bfs_moves_scores(opp_row, opp_col, game.height, game.width, blank_spaces)
+    for i, j in blank_spaces:
         move_score += my_scores[i][j]
         move_score -= opp_scores[i][j]
     return move_score
@@ -155,7 +156,7 @@ def far_from_opponent_score(game, player):
 
     Returns
     -------
-        float - the heuristic value of the current move
+    float - the heuristic value of the current move
     """
     opponent_moves = game.get_legal_moves(game.get_opponent(player))
     my_moves = game.get_legal_moves(player)
@@ -179,7 +180,7 @@ def close_to_opponent_score(game, player):
 
     Returns
     -------
-        float - the heuristic value of the current move
+    float - the heuristic value of the current move
     """
     opponent_moves = game.get_legal_moves(game.get_opponent(player))
     my_moves = game.get_legal_moves(player)
@@ -189,7 +190,7 @@ def close_to_opponent_score(game, player):
         return float("-inf")
     my_row, my_col = game.get_player_location(player)
     opp_row, opp_col = game.get_player_location(game.get_opponent(player))
-    return 1. / (abs(my_row - opp_row) + abs(my_col - opp_col))
+    return -float(abs(my_row - opp_row) + abs(my_col - opp_col))
 
 
 def custom_score(game, player):
@@ -211,10 +212,9 @@ def custom_score(game, player):
 
     Returns
     -------
-    float
-        The heuristic value of the current game state to the specified player.
+    float - The heuristic value of the current game state to the specified player.
     """
-    return bfs_heuristic(game, player)
+    return close_to_opponent_score(game, player) + bfs_heuristic(game, player)
 
 
 class CustomPlayer:
@@ -249,7 +249,7 @@ class CustomPlayer:
         The ratio used to calculate the BFS heuristic for the player.
     """
 
-    def __init__(self, search_depth=3, score_fn=custom_score, iterative=True, method='minimax', timeout=10., ratio=0.1):
+    def __init__(self, search_depth=3, score_fn=custom_score, iterative=True, method='minimax', timeout=10., ratio=0.5):
         self.search_depth = search_depth
         self.iterative = iterative
         self.score = score_fn
