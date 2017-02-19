@@ -88,10 +88,11 @@ def bfs_moves_scores(row, col, height, width, blank_spaces):
 
     Returns
     -------
-        a 2D list of scores for the board
+    float - the score for the player with the given game state
     """
     queue = deque()
-    scores = [[-1. for i in range(height)] for j in range(width)]
+    visited = set()
+    score = 0.
     queue.append(((row, col), 1))
     while len(queue) != 0:
         (r, c), s = queue.popleft()
@@ -100,13 +101,15 @@ def bfs_moves_scores(row, col, height, width, blank_spaces):
             for j in [-2, 2]:
                 # For each possible move, we check that we are in bounds,
                 # the space is blank, and we haven't already visited it.
-                if move_in_bounds(r + i, c + j, height, width) and (r + i, c + j) in blank_spaces and scores[r + i][c + j] < 0.:
+                if move_in_bounds(r + i, c + j, height, width) and (r + i, c + j) in blank_spaces and (r + i, c + j) not in visited:
                     next_moves.append((r + i, c + j))
-                if move_in_bounds(r + j, c + i, height, width) and (r + j, c + i) in blank_spaces and scores[r + j][c + i] < 0.:
+                    visited.add((r + i, c + j))
+                if move_in_bounds(r + j, c + i, height, width) and (r + j, c + i) in blank_spaces and (r + j, c + i) not in visited:
                     next_moves.append((r + j, c + i))
-        scores[r][c] = 1. / s
+                    visited.add((r + j, c + i))
+        score += 1. / s
         queue.extend(zip(next_moves, [s + 1 for i in range(len(next_moves))]))
-    return scores
+    return score
 
 
 def bfs_heuristic(game, player):
@@ -137,11 +140,8 @@ def bfs_heuristic(game, player):
     my_row, my_col = game.get_player_location(player)
     opp_row, opp_col = game.get_player_location(game.get_opponent(player))
     blank_spaces = set(game.get_blank_spaces())
-    my_scores = bfs_moves_scores(my_row, my_col, game.height, game.width, blank_spaces)
-    opp_scores = bfs_moves_scores(opp_row, opp_col, game.height, game.width, blank_spaces)
-    for i, j in blank_spaces:
-        move_score += my_scores[i][j]
-        move_score -= opp_scores[i][j]
+    move_score = bfs_moves_scores(my_row, my_col, game.height, game.width, blank_spaces)
+    move_score -= bfs_moves_scores(opp_row, opp_col, game.height, game.width, blank_spaces)
     return move_score
 
 
