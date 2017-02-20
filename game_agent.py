@@ -17,16 +17,16 @@ class Timeout(Exception):
 
 def far_from_center_score(game, player):
     """
-    This heuristic values squares furthest from the center of the board.
+    This heuristic chooses the moves that is furthest from the center using Manhattan distance.
 
     Parameters
     ----------
-        game - a Board object representing the current state of the game.
-        player - a CustomPlayer object that represents the player using this heuristic
+    game - a Board object representing the current state of the game.
+    player - a CustomPlayer object that represents the player using this heuristic
 
     Returns
     -------
-        float - heuristic value of the current move
+    float - heuristic value of the current move
     """
     opponent_moves = game.get_legal_moves(game.get_opponent(player))
     my_moves = game.get_legal_moves(player)
@@ -43,15 +43,16 @@ def far_from_center_score(game, player):
 
 def close_to_center_score(game, player):
     """
-    This heuristic values squares in the center of the board more than those at the edge of the board.
+    This heuristic chooses the moves that is closest to the center using Manhattan distance.
 
     Parameters
     ----------
-        game - a Board object representing the current state of the game.
-        player - a CustomPlayer object that represents the player using this heuristic
+    game - a Board object representing the current state of the game.
+    player - a CustomPlayer object that represents the player using this heuristic
 
     Returns
-        float - heuristic value of the current move
+    -------
+    float - heuristic value of the current move
     """
     opponent_moves = game.get_legal_moves(game.get_opponent(player))
     my_moves = game.get_legal_moves(player)
@@ -114,10 +115,10 @@ def bfs_moves_scores(row, col, height, width, blank_spaces):
 
 def bfs_heuristic(game, player):
     """
-    This heuristic user BFS to calculate a score for each square on the board for each player in the game.
+    This heuristic uses BFS to calculate a score for each square on the board for each player in the game.
     Then it adds up all the scores of the blank squares for `player` and subtracts the score of each blank
     square for `opponent`.
-    This idea is that it is a generalization of `improved_score`: `improved_score` does this for the next moves,
+    The idea is that it is a generalization of `improved_score`: `improved_score` does this for the next moves,
     but here we use all possible remaining moves.
 
     Parameters
@@ -147,7 +148,7 @@ def bfs_heuristic(game, player):
 
 def far_from_opponent_score(game, player):
     """
-    This heuristic chooses the move that is furtherest from the opponent.
+    This heuristic chooses the move that is furtherest from the opponent using Manhattan distance.
 
     Parameters
     ----------
@@ -171,7 +172,7 @@ def far_from_opponent_score(game, player):
 
 def close_to_opponent_score(game, player):
     """
-    This heuristic chooses the move that is closest to the opponent.
+    This heuristic chooses the move that is closest to the opponent using Manhattan distance.
 
     Parameters
     ----------
