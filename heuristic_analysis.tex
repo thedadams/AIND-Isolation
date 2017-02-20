@@ -178,7 +178,7 @@ Note that these only have to be calculated once and we can store these as a 2D-l
   \hline
 \end{tabular}
 \vskip0.5em
-So Player 1 has a score of $5.25$, Player 2 has a score of $4.1875$, and the heuristic will output $5.25-4.1875 = 1.0625$. We used the example of $r = 0.5$ here, but we can use whatever $r$ we like as long as $0 < r < 1$. Below are the outcomes of some values of $r$:
+So Player 1 has a score of $5.25$, Player 2 has a score of $4.1875$, and the heuristic will output $5.25-4.1875 = 1.0625$. We used the example of $r = 0.5$ here, but we can use whatever $r$ we like as long as $0 < r < 1$. We require $0 < r < 1$ because each subsequent move has diminished value because it can be blocked before we are able to make it. Below are the outcomes of some values of $r$:
 \vskip0.5em
 \begin{tabular}{|c|c|c|c|c|c|c|c|c|}
   \hline
