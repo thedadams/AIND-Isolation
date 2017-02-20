@@ -249,16 +249,13 @@ class CustomPlayer:
         The ratio used to calculate the BFS heuristic for the player.
     """
 
-    def __init__(self, search_depth=3, score_fn=custom_score, iterative=True, method='minimax', timeout=10., ratio=0.5):
+    def __init__(self, search_depth=3, score_fn=custom_score, iterative=True, method='minimax', timeout=10.):
         self.search_depth = search_depth
         self.iterative = iterative
         self.score = score_fn
         self.method = method
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
-        # This is used to store the board move scores in the BFS heuristic.
-        self.bfs_moves = dict()
-        self.ratio = ratio
 
     def get_move(self, game, legal_moves, time_left):
         """Search for the best move from the available legal moves and return a
