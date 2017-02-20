@@ -67,6 +67,54 @@ def close_to_center_score(game, player):
     return score
 
 
+def far_from_opponent_score(game, player):
+    """
+    This heuristic chooses the move that is furtherest from the opponent using Manhattan distance.
+
+    Parameters
+    ----------
+    game - a Board object representing the current state of the game.
+    player - a CustomPlayer object that represents the player using this heuristic
+
+    Returns
+    -------
+    float - the heuristic value of the current move
+    """
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
+        return float("inf")
+    if len(my_moves) == 0:
+        return float("-inf")
+    my_row, my_col = game.get_player_location(player)
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+    return float(abs(my_row - opp_row) + abs(my_col - opp_col))
+
+
+def close_to_opponent_score(game, player):
+    """
+    This heuristic chooses the move that is closest to the opponent using Manhattan distance.
+
+    Parameters
+    ----------
+    game - a Board object representing the current state of the game.
+    player - a CustomPlayer object that represents the player using this heuristic
+
+    Returns
+    -------
+    float - the heuristic value of the current move
+    """
+    opponent_moves = game.get_legal_moves(game.get_opponent(player))
+    my_moves = game.get_legal_moves(player)
+    if len(opponent_moves) == 0:
+        return float("inf")
+    if len(my_moves) == 0:
+        return float("-inf")
+    my_row, my_col = game.get_player_location(player)
+    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
+    return -float(abs(my_row - opp_row) + abs(my_col - opp_col))
+
+
 def move_in_bounds(row, col, height, width):
     """
     This is a helper function to make sure we are in the board bounds.
@@ -144,54 +192,6 @@ def bfs_heuristic(game, player):
     move_score = bfs_moves_scores(my_row, my_col, game.height, game.width, blank_spaces)
     move_score -= bfs_moves_scores(opp_row, opp_col, game.height, game.width, blank_spaces)
     return move_score
-
-
-def far_from_opponent_score(game, player):
-    """
-    This heuristic chooses the move that is furtherest from the opponent using Manhattan distance.
-
-    Parameters
-    ----------
-    game - a Board object representing the current state of the game.
-    player - a CustomPlayer object that represents the player using this heuristic
-
-    Returns
-    -------
-    float - the heuristic value of the current move
-    """
-    opponent_moves = game.get_legal_moves(game.get_opponent(player))
-    my_moves = game.get_legal_moves(player)
-    if len(opponent_moves) == 0:
-        return float("inf")
-    if len(my_moves) == 0:
-        return float("-inf")
-    my_row, my_col = game.get_player_location(player)
-    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
-    return float(abs(my_row - opp_row) + abs(my_col - opp_col))
-
-
-def close_to_opponent_score(game, player):
-    """
-    This heuristic chooses the move that is closest to the opponent using Manhattan distance.
-
-    Parameters
-    ----------
-    game - a Board object representing the current state of the game.
-    player - a CustomPlayer object that represents the player using this heuristic
-
-    Returns
-    -------
-    float - the heuristic value of the current move
-    """
-    opponent_moves = game.get_legal_moves(game.get_opponent(player))
-    my_moves = game.get_legal_moves(player)
-    if len(opponent_moves) == 0:
-        return float("inf")
-    if len(my_moves) == 0:
-        return float("-inf")
-    my_row, my_col = game.get_player_location(player)
-    opp_row, opp_col = game.get_player_location(game.get_opponent(player))
-    return -float(abs(my_row - opp_row) + abs(my_col - opp_col))
 
 
 def custom_score(game, player):
